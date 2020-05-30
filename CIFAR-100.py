@@ -1,67 +1,73 @@
 import keras
 from keras.datasets import cifar10
 
-# load the pre-shuffled train and test data
+# loading the pre-shuffled train and test data
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-"""
+# Preview of some images iin CIFAR-100 datset
 fig = plt.figure(figsize=(20,5))
 for i in range(36):
     ax = fig.add_subplot(3, 12, i+1, xticks=[], yticks=[])
     ax.imshow(np.squeeze(x_train[i]))
-"""    
+ 
 from keras.utils import np_utils
 
-# one-hot encode the labels
+# one-hot encoding the labels
 num_classes = len(np.unique(y_train))
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
-# break training set into training and validation sets
+# breaking training set into training and validation sets
 (x_train, x_valid) = x_train[5000:], x_train[:5000]
 (y_train, y_valid) = y_train[5000:], y_train[:5000]
-'''
+
 from keras.preprocessing.image import ImageDataGenerator
 
-# create and configure augmented image generator
+'''
+
+#Data Augmentation step, commented because used another method to augment images
+
+# creating and configuring augmented image generator for Train set
 datagen_train = ImageDataGenerator(
     width_shift_range=0.1,  # randomly shift images horizontally (10% of total width)
     height_shift_range=0.1,  # randomly shift images vertically (10% of total height)
     horizontal_flip=True) # randomly flip images horizontally
 
-# create and configure augmented image generator
+# creating and configuring augmented image generator for Validation set
 datagen_valid = ImageDataGenerator(
     width_shift_range=0.1,  # randomly shift images horizontally (10% of total width)
     height_shift_range=0.1,  # randomly shift images vertically (10% of total height)
     horizontal_flip=True) # randomly flip images horizontally
 
-# fit augmented image generator on data
+# fitting augmented image generator on data
 datagen_train.fit(x_train)
 datagen_valid.fit(x_valid)
 
-'''
+
 # print shape of training set
-#print('x_train shape:', x_train.shape)
+print('x_train shape:', x_train.shape)
 
 # print number of training, validation, and test images
-#print(x_train.shape[0], 'train samples')
-#print(x_test.shape[0], 'test samples')
-#print(x_valid.shape[0], 'validation samples')
+print(x_train.shape[0], 'train samples')
+print(x_test.shape[0], 'test samples')
+print(x_valid.shape[0], 'validation samples')
+'''
 
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 
+# CNN Architecture
 model = Sequential()
 model.add(Conv2D(filters=32, kernel_size=2, padding='same', activation='relu', 
                         input_shape=(32, 32, 3)))
 model.add(MaxPooling2D(pool_size=2))
-#model.add(Dropout(0.2))
+model.add(Dropout(0.2))
 model.add(Conv2D(filters=64, kernel_size=2, padding='same', activation='relu'))
 model.add(MaxPooling2D(pool_size=2))
-#model.add(Dropout(0.2))
+model.add(Dropout(0.2))
 model.add(Conv2D(filters=128, kernel_size=2, padding='same', activation='relu'))
 model.add(MaxPooling2D(pool_size=2))
 model.add(Dropout(0.3))
@@ -72,14 +78,16 @@ model.add(Dense(10, activation='softmax'))
 
 model.summary()
 
-# compile the model
+# compiling the model
 model.compile(loss='categorical_crossentropy', optimizer='rmsprop', 
                   metrics=['accuracy'])
 
 '''
+
+#Used if Image Augmenation used by upper commented method
 from keras.callbacks import ModelCheckpoint   
 
-# train the model
+# training the model
 checkpointer = ModelCheckpoint(filepath='model.weights.best.hdf5', verbose=1, 
                                save_best_only=True)
 hist = model.fit(x_train, y_train, batch_size=32, epochs=100
@@ -90,14 +98,17 @@ hist = model.fit(x_train, y_train, batch_size=32, epochs=100
 model.load_weights('model.weights.best.hdf5')
 '''
 
+
 from keras.callbacks import ModelCheckpoint   
 
 batch_size = 32
-epochs = 50
+epochs = 100
 
-# train the model
+# training the model
 checkpointer = ModelCheckpoint(filepath='aug_model.weights.best.hdf5', verbose=1, 
                                save_best_only=True)
+
+#Fit_generator is used for Image AAugmentation
 model.fit_generator(datagen_train.flow(x_train, y_train, batch_size=batch_size),
                     steps_per_epoch=x_train.shape[0] // batch_size,
                     epochs=epochs, verbose=2, callbacks=[checkpointer],
